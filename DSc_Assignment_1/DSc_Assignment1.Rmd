@@ -1,0 +1,127 @@
+---
+title: "DSc Assignment 1"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+By-
+Shaurya Goel
+(2016194)
+```{r} 
+# Import necessary packages
+library(corrplot)
+```
+
+Load all the saved csv files (with provided links)
+```{r} 
+# https://cdiac.ess-dive.lbl.gov/trends/emis/tre_coun.html
+co2=read.csv('CO2_emission.csv')
+
+# https://data.gov.in/resources/monthly-seasonal-and-annual-mean-temp-series-1901-2017
+temp=read.csv('Mean_Temp_IMD_2017.csv')
+
+# https://data.gov.in/resources/frequency-cyclonic-disturbances-depressions-and-above-over-bay-bengal-bob-arabian-sea-and
+cyclone=read.csv('cyclonic-disturbances-1891-2016.csv')
+
+# https://data.gov.in/resources/district-rainfall-normal-mm-monthly-seasonal-and-annual-data-period-1951-2000
+rainfall=read.csv('rainfall in india 1901-2015_stateswise.csv')
+
+# https://data.worldbank.org/topic/climate-change
+data=read.csv('WorldBank_data.csv')       # contains many variables
+```
+
+Getting desired data from the CO2 emission file
+```{r}
+co2=co2[co2$Nation=='INDIA',]
+names(co2)[3] <- "Total.Emission"      # rename column name
+co2=co2[,2:3]
+rownames(co2)<-NULL                    # rename row name
+```
+
+Getting desired data from the temperature file
+```{r}
+temp=subset(temp,select=c('YEAR','ANNUAL'))
+```
+
+Getting desired data from the cyclone file
+```{r}
+cyclone=subset(cyclone,select=c('Year',"January...December..Whole.Year...Total" ))
+names(cyclone)[2] <- "Total.Cyclones"   # rename column name
+```
+
+Getting desired data from the rainfall file
+```{r}
+rainfall=subset(rainfall,select=c('SUBDIVISION','YEAR','ANNUAL'))
+rainfall[is.na(rainfall)]<-0
+rainfall=aggregate(rainfall$ANNUAL,by=list(Category=rainfall$YEAR),FUN=mean)
+names(rainfall[2]) <- "Total.Rainfall"
+```
+
+Getting desired data from the World Bank file
+```{r}
+data=data[c(4,61,68),]
+data=t(data)
+colnames(data) <- c("Total.Pop",'Electricity From Coal %','Forest.Area') # rename columns
+data=data[c(-1,-2),]
+rownames(data)<-1960:2018    # row names are from 1960-2018
+data[is.na(data)]<-0         # Fill missing values with 0
+class(data)<-"numeric"       # Convert all columns to numeric type
+```
+
+# ANALYSIS
+```{r}
+plot(co2[,1],co2[,2],xlab='Year',ylab='Total emission (in million Tonnes)', main='CO2 emission in India')
+```
+
+We can clearly see above that the total CO2 emission is increasing with each year.
+
+```{r}
+plot(rainfall[,1],rainfall[,2],xlab='Year',ylab='Total rainfall(in mm)',main='Average rainfall in India')
+```
+We can see that average rainfall is decreasing after 1940, possibly due to changing climatic patterns.
+
+```{r}
+plot(cyclone[,1],cyclone[,2],xlab='Year',ylab='Total cyclones', main='Total number of cyclones in India')
+```
+Similar to average rainfall, total cyclones are decreasing after 1940. Will this show high correlation?
+
+```{r}
+years=1960:2018
+plot(years,data[,1],xlab='Year',ylab='Total Population', main='Total population of India')
+```
+Total population is increasing with each year.
+
+```{r}
+year=1971:2015
+plot(year,data[year-1959,2],xlab='Year',ylab='% of total electricity generated', main='Coal used to generate electricity')
+```
+Usage of coal is on the rise since 1970.
+
+
+# ANS-3
+```{r}
+plot(rainfall[1:nrow(rainfall),2],cyclone[11:125,2],xlab='rainfall (in mm)',ylab='number of cyclones',main='Cyclones vs Rainfall')
+```
+There is a slight upward trend indicating cyclones increase with amount of rainfall. If we took rainfall occuring in coastal regions only, then there would be a higher correlation.
+
+```{r}
+plot(co2[92:146,2],data[1:55,1],xlab='CO2 emission (in mil. tonnes)',ylab='Total population',main='Population vs CO2')
+```
+With increasing population more CO2 is emitted as people use fossil fuels.
+
+```{r}
+plot(co2[103:146,2],data[12:55,2],xlab='C02 generated',ylab='% electricity generated from coal',main='Electricity from coal vs CO2')
+```
+More electricity generated from coal means more CO2 in atmosphere. 
+
+```{r}
+plot(data[12:55,1],data[12:55,2],xlab='Population',ylab='% electricity generated from coal',main='Electricity vs population')
+```
+Higher population demands higher electricity. Also, it is easiest to generate electricity from coal, hence the upward trend.
+
+```{r}
+new_data=data.frame(co2[103:146,2],data[12:55,1],data[12:55,2])
+colnames(new_data)<-c('CO2','Population','Coal')
+corrplot(cor(new_data))
+```
+All three variables are highly correlated with each other which is expected. High population leads to high coal usage to generate electricity. Which leads to more emission of CO2.
