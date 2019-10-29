@@ -1,0 +1,176 @@
+---
+title: "Assignment 3"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+# ANS-1
+a) Not Stationary as mean is not constant (it is increasing).
+
+b) Stationary as all conditions of stationarity are satisfied. 
+
+c) Not Stationary as variance is different in the middle portion.
+
+d) Not Stationary as the data is periodic.
+
+e) Not Stationary as mean is not constant (is is decreasing).
+
+f) Not Stationary as there is a peak at the beginning.
+
+g) Stationary as the data is periodic with irregular intervals.
+
+h) Not Stationary as the data is periodic.
+
+i) Not Stationary as mean is increasing.
+
+# ANS-2
+```{r}
+library('forecast')
+library('tseries')
+```
+
+```{r}
+amazon=read.csv('amazon.csv')
+amazon=amazon[which(amazon$date=='26/10/2016'):nrow(amazon),'close']
+amazon=ts(amazon,start=c(2016,10,26),frequency=365)
+
+google=read.csv('google.csv')
+google=google[which(google$date=='26/10/2016'):nrow(google),'close']
+google=ts(google,start=c(2016,10,26),frequency=365)
+
+micro=read.csv('microsoft.csv')
+micro=micro[which(micro$date=='26/10/2016'):nrow(micro),'close']
+micro=ts(micro,start=c(2016,10,26),frequency=365)
+
+plot(amazon,type = 'l',ylab='Price per share (in USD)',main = 'Amazon stock price')
+plot(google,type = 'l',ylab='Price per share (in USD)',main = 'Google stock price')
+plot(micro,type = 'l',ylab='Price per share (in USD)',main = 'Microsoft stock price')
+```
+
+a) All the stocks are performing very well as they are showing an upward trend. Microsoft's stocks are very stable, whereas Google's stock shows a small periodic decline and generally has higher variance.
+
+
+Amazon's stock value is fluctuating around a constant value for the past 1 year and hasn't seen growth recently.
+
+b)
+
+```{r}
+acf_amazon=acf(amazon,lag.max=100, plot=FALSE)
+pacf_amazon=pacf(amazon,lag.max=100, plot=FALSE)
+par(mfrow=c(2,1))
+plot(acf_amazon)
+plot(pacf_amazon)
+```
+
+
+```{r}
+acf_google=acf(google,lag.max=100, plot=FALSE)
+pacf_google=pacf(google,lag.max=100, plot=FALSE)
+par(mfrow=c(2,1))
+plot(acf_google)
+plot(pacf_google)
+```
+
+
+```{r}
+acf_micro=acf(micro,lag.max=100, plot=FALSE)
+pacf_micro=pacf(micro,lag.max=100, plot=FALSE)
+par(mfrow=c(2,1))
+plot(acf_micro)
+plot(pacf_micro)
+```
+
+In all of the above cases we see that auto correlation is decreasing with increasing lags. In partial auto-correlation we see that the autocorrelation is high at lag=1. This implies that value of y at timt=t depends only on the value at time=(t-1). q=1 for our AR model.
+
+c)
+```{r}
+amazon_stat=diff(amazon,differences = 1)
+google_stat=diff(google,differences = 1)
+micro_stat=diff(micro,differences = 1)
+plot(amazon_stat, main='Amazon')
+plot(google_stat, main='Google')
+plot(micro_stat, main='Microsoft')
+```
+All of the above can be made approximately stationary by differencing the data by lag=1.
+
+d) Learn only from first 600 data points and then use it to predict future samples. Finally, calculate mae error.
+
+```{r}
+# Amazon prices 
+amazon_fit=arima(amazon[1:600],order=c(1,1,1))
+forecast_amazon=forecast(amazon_fit,h=155)
+sprintf('MAE error on future samples of Amazon: %s',sum(abs(forecast_amazon[["mean"]]-amazon[601:755])))
+
+google_fit=arima(google[1:600],order=c(1,1,1))
+forecast_google=forecast(google_fit,h=155)
+sprintf('MAE error on future samples of Google: %s',sum(abs(forecast_google[["mean"]]-google[601:755])))
+
+micro_fit=arima(micro[1:600],order=c(1,1,1))
+forecast_micro=forecast(micro_fit,h=155)
+sprintf('MAE error on future samples of Microsoft: %s',sum(abs(forecast_micro[["mean"]]-micro[601:755])))
+```
+
+# ANS-3
+```{r}
+# load the data
+library(mlbench)
+data("BreastCancer")
+cancer=data.frame(data.matrix(BreastCancer[1:nrow(BreastCancer),-1]))
+cancer[is.na(cancer)]<-1      # Replace NA values with mode only bare.nuclei columns has na values 
+```
+
+
+```{r}
+model=glm(as.factor(Class)~.,data=cancer, family='binomial')
+
+# predicted=predict.glm(model,cancer,type='response')
+# predicted=ifelse(predicted>0.5,2,1)
+```
+
+
+```{r}
+# [501:699,1:9]
+# (predicted>0.5)==cancer[501:699,10]
+# table(cancer[501:699,10],predicted>0.5)
+
+# sum(predicted==cancer[1:699,10])
+
+summ=summary.glm(model)
+summ
+```
+
+We fit a logit link function to the data as the output variable is a binary variable and obtain the summary as above.
+
+Estimate column tells us the coefficients of each independent variable including a bias term.
+
+Std. Error is the standard deviation of that variable. 
+
+z-value is obtained by dividing the estimate and  the std. error.
+
+Pr(>|z|) tells the probability of obtaining that z value. 
+
+Variables with *'s at the end denote that they are statistically significant with a significance level of 0.05. 
+
+```{r}
+prob=summ[["coefficients"]][31:40]
+oddsratio=(prob/(1-prob))**2
+oddsratio
+```
+
+Variables with high odds ratio also have low value of coefficients meaning these variables are less important in predicting the output class. 
+
+More the important a variable is in predicting the class less the odds ratio it has.
+```{r}
+# mean=summ[["coefficients"]][1:10]
+std=summ[["coefficients"]][11:20]
+
+low=oddsratio-(std*1.96)/(sqrt(nrow(cancer)))
+high=oddsratio+(std*1.96)/(sqrt(nrow(cancer)))
+
+low
+high
+```
+
+
+```{r}
+```
